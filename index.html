@@ -301,12 +301,15 @@
   #ver-modal input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-size: 0.85rem; padding: 8px 12px; outline: none; margin-bottom: 16px; }
   #ver-modal input:focus { border-color: var(--edit); }
   /* KARTENAUSSCHNITT */
-  .karte-wrap{position:relative;width:100%;height:190px;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:#0b0d13;background-repeat:no-repeat;cursor:zoom-in;margin-bottom:12px;transition:border-color .15s;}
+  .karte-wrap{position:relative;width:100%;height:190px;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:#0b0d13;cursor:zoom-in;margin-bottom:12px;transition:border-color .15s;}
   .karte-wrap:hover{border-color:var(--accent);}
+  .karte-img{position:absolute;top:0;left:0;max-width:none;max-height:none;pointer-events:none;user-select:none;opacity:0;transition:opacity .2s;}
+  .karte-img.loaded{opacity:1;}
   .karte-marker{position:absolute;width:22px;height:22px;margin-left:-11px;margin-top:-21px;pointer-events:none;z-index:5;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.6));}
-  .karte-approx-tag{position:absolute;bottom:6px;left:8px;background:rgba(0,0,0,0.62);color:#fcd34d;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.03em;}
-  .karte-hint{position:absolute;top:6px;right:8px;background:rgba(0,0,0,0.5);color:#cdd2e6;font-size:0.6rem;font-weight:600;padding:2px 7px;border-radius:4px;}
-  .karte-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:0.75rem;text-align:center;padding:0 12px;}
+  .karte-approx-tag{position:absolute;bottom:6px;left:8px;background:rgba(0,0,0,0.62);color:#fcd34d;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.03em;z-index:4;}
+  .karte-hint{position:absolute;top:6px;right:8px;background:rgba(0,0,0,0.5);color:#cdd2e6;font-size:0.6rem;font-weight:600;padding:2px 7px;border-radius:4px;z-index:4;}
+  .karte-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:0.72rem;text-align:center;padding:0 12px;line-height:1.4;}
+  .karte-loading{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:0.7rem;}
   #map-modal .modal{max-width:920px;width:95%;padding:20px;}
   #map-modal-body{position:relative;border-radius:8px;overflow:auto;border:1px solid var(--border);max-height:75vh;}
   #map-modal-img{width:100%;display:block;}
@@ -592,7 +595,14 @@ const ADATA = [{"autobahn":"A8","richtung_von":"München","richtung_bis":"Salzbu
 // ============================================================
 const MAP_IMG_SRC = 'brannenburg-karte.jpg';
 const MAP_W = 2861, MAP_H = 1696; // native pixel size of the exported map (Folie 2)
-const MAP_ZOOM = 3.2; // how far the excerpt zooms into the full map
+const MAP_CROP_FRACTION = 0.30; // fraction of the map WIDTH visible in one excerpt (bigger = more zoomed out)
+
+// Preload once so every excerpt / the modal can rely on a warm browser cache.
+let mapImgReady = false, mapImgFailed = false;
+const mapPreload = new Image();
+mapPreload.onload = () => { mapImgReady = true; };
+mapPreload.onerror = () => { mapImgFailed = true; };
+mapPreload.src = MAP_IMG_SRC;
 
 // Position (in % of the map image) of each zone's label on Folie 2.
 // approx:true = zone has no own polygon on the overview map; the coordinate
@@ -625,42 +635,73 @@ const MARKER_SVG = '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M12
 function buildMapExcerptEl(zoneName) {
   const wrap = document.createElement('div');
   wrap.className = 'karte-wrap';
+  wrap.dataset.zone = zoneName;
   wrap.title = 'Kartenausschnitt – Klick für Vollbild';
-  wrap.innerHTML = '<div class="karte-hint">🗺️ Vollbild</div>';
+  wrap.innerHTML = '<div class="karte-hint">🗺️ Vollbild</div><div class="karte-loading">Karte wird geladen…</div>';
   wrap.onclick = (e) => { e.stopPropagation(); openMapModal(zoneName); };
   return wrap;
 }
 
-function renderMapExcerpt(container, zoneName) {
-  const coord = ZONE_COORDS[zoneName];
-  container.style.backgroundImage = `url('${MAP_IMG_SRC}')`;
-  if (!coord) {
-    const empty = document.createElement('div');
-    empty.className = 'karte-empty';
-    empty.textContent = 'Kein Kartenausschnitt für diese Zone verfügbar';
-    container.appendChild(empty);
-    return;
-  }
-  const cw = container.clientWidth || 300, ch = container.clientHeight || 190;
-  const bw = MAP_W * MAP_ZOOM, bh = MAP_H * MAP_ZOOM;
+function showMapError(container, msg) {
+  container.querySelector('.karte-loading')?.remove();
+  container.querySelectorAll('.karte-img,.karte-marker,.karte-approx-tag').forEach(el => el.remove());
+  const err = document.createElement('div');
+  err.className = 'karte-empty';
+  err.textContent = msg;
+  container.appendChild(err);
+}
+
+function positionMapImg(container, img, coord) {
+  const cw = container.clientWidth || 320, ch = container.clientHeight || 190;
+  const bw = cw / MAP_CROP_FRACTION;
+  const bh = bw * (MAP_H / MAP_W);
   let bx = (coord.x/100)*bw - cw/2;
   let by = (coord.y/100)*bh - ch/2;
   bx = Math.max(0, Math.min(bx, bw - cw));
   by = Math.max(0, Math.min(by, bh - ch));
-  container.style.backgroundSize = `${bw}px ${bh}px`;
-  container.style.backgroundPosition = `-${bx}px -${by}px`;
-  const marker = document.createElement('div');
-  marker.className = 'karte-marker';
+  img.style.width = bw + 'px';
+  img.style.height = bh + 'px';
+  img.style.left = (-bx) + 'px';
+  img.style.top = (-by) + 'px';
+  img.classList.add('loaded');
+  container.querySelector('.karte-loading')?.remove();
+
+  let marker = container.querySelector('.karte-marker');
+  if (!marker) {
+    marker = document.createElement('div');
+    marker.className = 'karte-marker';
+    marker.innerHTML = MARKER_SVG;
+    container.appendChild(marker);
+  }
   marker.style.left = ((coord.x/100)*bw - bx) + 'px';
   marker.style.top = ((coord.y/100)*bh - by) + 'px';
-  marker.innerHTML = MARKER_SVG;
-  container.appendChild(marker);
+}
+
+function renderMapExcerpt(container, zoneName) {
+  const coord = ZONE_COORDS[zoneName];
+  if (!coord) {
+    showMapError(container, 'Kein Kartenausschnitt für diese Zone verfügbar');
+    return;
+  }
+  if (mapImgFailed) {
+    showMapError(container, '⚠️ Karte konnte nicht geladen werden – liegt "brannenburg-karte.jpg" im selben Ordner wie die HTML-Datei?');
+    return;
+  }
   if (coord.approx) {
     const tag = document.createElement('div');
     tag.className = 'karte-approx-tag';
     tag.textContent = '≈ ungefähre Lage';
     container.appendChild(tag);
   }
+  const img = document.createElement('img');
+  img.className = 'karte-img';
+  img.alt = '';
+  img.draggable = false;
+  img.onload = () => positionMapImg(container, img, coord);
+  img.onerror = () => showMapError(container, '⚠️ Karte konnte nicht geladen werden – liegt "brannenburg-karte.jpg" im selben Ordner wie die HTML-Datei?');
+  container.appendChild(img);
+  img.src = MAP_IMG_SRC;
+  if (img.complete && img.naturalWidth) positionMapImg(container, img, coord);
 }
 
 function openMapModal(zoneName) {
