@@ -105,6 +105,15 @@
 
   .section-title{font-size:0.65rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
   .section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+  .bfolge-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 12px;color:var(--text);font-size:0.74rem;font-weight:600;cursor:pointer;transition:all .15s;}
+  .bfolge-toggle:hover{border-color:var(--accent);}
+  .bfolge-toggle.open{border-color:var(--accent);background:var(--accent-glow);color:#a5b4fc;}
+  .bfolge-toggle .bfolge-toggle-label{display:flex;align-items:center;gap:6px;}
+  .bfolge-toggle .bfolge-count{font-size:0.62rem;color:var(--muted);font-weight:700;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1px 7px;}
+  .bfolge-toggle.open .bfolge-count{color:#a5b4fc;border-color:rgba(99,102,241,0.3);}
+  .bfolge-toggle .bfolge-chev{color:var(--muted);transition:transform .2s;flex-shrink:0;}
+  .bfolge-toggle.open .bfolge-chev{transform:rotate(180deg);color:#a5b4fc;}
+  .bfolge-list-wrap{margin-top:10px;}
   .ff-list{display:flex;flex-direction:column;gap:4px;}
   .ff-row{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:6px;transition:background .1s;}
   .ff-row:hover{background:rgba(255,255,255,0.03);}
@@ -356,7 +365,7 @@
   <div class="header-top">
     <div class="logo">🚒</div>
     <div class="title-block">
-      <h1>Bereichsfolge <span id="header-bereich">Brannenburg RO-L</span> <span class="app-version-badge"><span class="app-ver-dot"></span>v1.7.4</span></h1>
+      <h1>Bereichsfolge <span id="header-bereich">Brannenburg RO-L</span> <span class="app-version-badge"><span class="app-ver-dot"></span>v1.7.6</span></h1>
       <p id="header-subtitle">Alarmierungsfolgen für den Dispositionsbereich · Stand: Jan 2026</p>
     </div>
   </div>
@@ -407,7 +416,7 @@
 
     <span id="app-ver-info" style="margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer" onclick="toggleChangelog()" title="Changelog anzeigen">
       <span style="font-size:0.68rem;color:var(--muted)">App</span>
-      <span style="font-size:0.68rem;font-weight:700;color:#a5b4fc">v1.7.4</span>
+      <span style="font-size:0.68rem;font-weight:700;color:#a5b4fc">v1.7.6</span>
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
     </span>
   </div>
@@ -443,9 +452,27 @@
     <div style="margin-top:16px;display:flex;flex-direction:column;gap:16px">
       <div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span style="background:var(--accent);color:#fff;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:4px">v1.7.4</span>
+          <span style="background:var(--accent);color:#fff;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:4px">v1.7.6</span>
           <span style="font-size:0.72rem;color:var(--muted)">Aktuell · Aug 2026</span>
           <span style="font-size:0.65rem;background:rgba(34,197,94,0.2);color:var(--green);border:1px solid rgba(34,197,94,0.3);padding:1px 6px;border-radius:4px">Neu</span>
+        </div>
+        <ul style="font-size:0.76rem;color:var(--text);line-height:1.7;padding-left:16px">
+          <li>Bearbeitungsmodus: Bereichsfolge Ortsteil jetzt ebenfalls auf-/zuklappbar</li>
+        </ul>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="background:var(--surface2);color:var(--muted);font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:4px;border:1px solid var(--border)">v1.7.5</span>
+          <span style="font-size:0.72rem;color:var(--muted)">Aug 2026</span>
+        </div>
+        <ul style="font-size:0.76rem;color:var(--text);line-height:1.7;padding-left:16px">
+          <li>Bereichsfolge Ortsteil ist jetzt separat auf-/zuklappbar ("Bereichsfolge anzeigen") – Kartenausschnitt bleibt sofort sichtbar</li>
+        </ul>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="background:var(--surface2);color:var(--muted);font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:4px;border:1px solid var(--border)">v1.7.4</span>
+          <span style="font-size:0.72rem;color:var(--muted)">Aug 2026</span>
         </div>
         <ul style="font-size:0.76rem;color:var(--text);line-height:1.7;padding-left:16px">
           <li>Legende &amp; ÖRTLICH-Chip: statt RO-L/RO-S/MB jetzt Farben je Feuerwehr (Degerndorf, Brannenburg, Großbrannenberg)</li>
@@ -764,6 +791,7 @@ let WORK = loadFromStorage();
 let currentView = 'zonen';
 let activeFilter = null;
 let expanded = new Set();
+let bfolgeOpen = new Set(); // zones whose "Bereichsfolge Ortsteil" list is currently shown
 let searchVal = '';
 let sortMode = 'default';
 let activeSubtab = 'komplett';
@@ -960,6 +988,13 @@ function buildViewBody(body, zoneName, ortsteil, zonePeers) {
   body.innerHTML = '';
   body.appendChild(buildMapExcerptEl(zoneName));
 
+  if (zonePeers.length > 0) {
+    const note = document.createElement('div');
+    note.style.cssText = 'font-size:0.68rem;color:var(--match);margin-bottom:10px;padding:6px 10px;background:var(--match-bg);border-radius:6px;border:1px solid var(--match-border)';
+    note.innerHTML = `⟳ Top-10-Folge identisch mit: <b>${zonePeers.join(', ')}</b>`;
+    body.appendChild(note);
+  }
+
   if (!ortsteil.length) {
     const none = document.createElement('div');
     none.style.cssText = 'color:var(--muted);font-size:0.76rem;padding:4px 8px';
@@ -967,9 +1002,20 @@ function buildViewBody(body, zoneName, ortsteil, zonePeers) {
     body.appendChild(none);
     return;
   }
-  const MAX = 12; let showAll = false;
+
+  let showList = bfolgeOpen.has(zoneName);
+  const toggleBtn = document.createElement('button');
+  toggleBtn.type = 'button';
+  toggleBtn.className = 'bfolge-toggle' + (showList ? ' open' : '');
+  toggleBtn.innerHTML = `<span class="bfolge-toggle-label">📋 Bereichsfolge anzeigen <span class="bfolge-count">${ortsteil.length}</span></span><svg class="bfolge-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>`;
+  body.appendChild(toggleBtn);
+
   const listWrap = document.createElement('div');
+  listWrap.className = 'bfolge-list-wrap';
+  listWrap.style.display = showList ? 'block' : 'none';
   body.appendChild(listWrap);
+
+  const MAX = 12; let showAll = false;
   function buildList() {
     listWrap.innerHTML = '<div class="section-title">Bereichsfolge Ortsteil</div>';
     const list = document.createElement('div'); list.className = 'ff-list';
@@ -986,14 +1032,18 @@ function buildViewBody(body, zoneName, ortsteil, zonePeers) {
       btn.onclick = e => { e.stopPropagation(); showAll = !showAll; buildList(); };
       listWrap.appendChild(btn);
     }
-    if (zonePeers.length > 0) {
-      const note = document.createElement('div');
-      note.style.cssText = 'font-size:0.68rem;color:var(--match);margin-top:8px;padding:6px 10px;background:var(--match-bg);border-radius:6px;border:1px solid var(--match-border)';
-      note.innerHTML = `⟳ Top-10-Folge identisch mit: <b>${zonePeers.join(', ')}</b>`;
-      listWrap.appendChild(note);
-    }
   }
-  buildList();
+
+  toggleBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    showList = !showList;
+    toggleBtn.classList.toggle('open', showList);
+    listWrap.style.display = showList ? 'block' : 'none';
+    if (showList) { bfolgeOpen.add(zoneName); if (!listWrap.dataset.built) { buildList(); listWrap.dataset.built = '1'; } }
+    else { bfolgeOpen.delete(zoneName); }
+  });
+
+  if (showList) { buildList(); listWrap.dataset.built = '1'; }
 }
 
 // ============================================================
@@ -1081,19 +1131,27 @@ function buildEditBody(body, zoneName, ortsteil, oertlich) {
   oSec.appendChild(oList);
   body.appendChild(oSec);
 
-  // ── Ortsteil ──
-  const ortSec = document.createElement('div');
-  const ortTitle = document.createElement('div');
-  ortTitle.className = 'section-title';
-  ortTitle.style.marginTop = '10px';
-  ortTitle.textContent = 'Bereichsfolge Ortsteil';
-  ortSec.appendChild(ortTitle);
-  body.appendChild(ortSec);
+  // ── Ortsteil (collapsible) ──
+  let showOrtList = bfolgeOpen.has(zoneName);
+  const toggleBtn = document.createElement('button');
+  toggleBtn.type = 'button';
+  toggleBtn.className = 'bfolge-toggle' + (showOrtList ? ' open' : '');
+  toggleBtn.style.marginTop = '10px';
+  toggleBtn.innerHTML = `<span class="bfolge-toggle-label">📋 Bereichsfolge Ortsteil bearbeiten <span class="bfolge-count">${WORK[zoneName].ortsteil.length}</span></span><svg class="bfolge-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>`;
+  body.appendChild(toggleBtn);
+
+  const ortWrap = document.createElement('div');
+  ortWrap.className = 'bfolge-list-wrap';
+  ortWrap.style.display = showOrtList ? 'block' : 'none';
+  body.appendChild(ortWrap);
+
   const list = document.createElement('div'); list.className = 'ff-list'; list.id = `list-${zoneName}`;
 
   function refreshList() {
     list.innerHTML = '';
     const data = WORK[zoneName].ortsteil;
+    const countEl = toggleBtn.querySelector('.bfolge-count');
+    if (countEl) countEl.textContent = data.length;
     data.forEach((ff, i) => {
       const row = document.createElement('div');
       row.className = 'ff-row edit-row';
@@ -1142,13 +1200,21 @@ function buildEditBody(body, zoneName, ortsteil, oertlich) {
     });
   }
   refreshList();
-  body.appendChild(list);
+  ortWrap.appendChild(list);
 
   // Add FF row
   const addRow = document.createElement('div'); addRow.className = 'add-ff-row';
   addRow.innerHTML = `<input class="add-ff-input" placeholder="Neue Feuerwehr (z.B. 1.5.2 RO-L FF MUSTERORT)" id="addinput-${zoneName}">
     <button class="btn-add-ff" id="addbtn-${zoneName}">+ Hinzufügen</button>`;
-  body.appendChild(addRow);
+  ortWrap.appendChild(addRow);
+
+  toggleBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    showOrtList = !showOrtList;
+    toggleBtn.classList.toggle('open', showOrtList);
+    ortWrap.style.display = showOrtList ? 'block' : 'none';
+    if (showOrtList) bfolgeOpen.add(zoneName); else bfolgeOpen.delete(zoneName);
+  });
 
   document.getElementById(`addbtn-${zoneName}`)?.addEventListener('click', () => {
     const input = document.getElementById(`addinput-${zoneName}`);
