@@ -150,6 +150,9 @@
   .btn-sm{padding:5px 12px;border-radius:6px;border:none;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all .15s;}
   .btn-edit-toggle{background:var(--edit-bg);color:var(--edit);border:1px solid var(--edit-border);}
   .btn-edit-toggle:hover{background:rgba(168,85,247,0.25);}
+  .btn-delete-seq{background:var(--danger-bg);color:var(--danger);border:1px solid rgba(239,68,68,0.4);white-space:nowrap;}
+  .btn-delete-seq:hover{background:rgba(239,68,68,0.25);}
+  .zone-edit-actions{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);}
 
   /* MODIFIED BADGE */
   .modified-badge{font-size:0.6rem;font-weight:700;background:var(--edit-bg);color:var(--edit);border:1px solid var(--edit-border);padding:1px 6px;border-radius:4px;margin-left:4px;}
@@ -381,7 +384,7 @@
   <div class="header-top">
     <div class="logo">🚒</div>
     <div class="title-block">
-      <h1>Bereichsfolge <span id="header-bereich">Brannenburg RO-L</span> <span class="app-version-badge"><span class="app-ver-dot"></span>v1.8.0</span></h1>
+      <h1>Bereichsfolge <span id="header-bereich">Brannenburg RO-L</span> <span class="app-version-badge"><span class="app-ver-dot"></span>v1.8.1</span></h1>
       <p id="header-subtitle">Alarmierungsfolgen für den Dispositionsbereich · Stand: Jan 2026</p>
     </div>
   </div>
@@ -432,7 +435,7 @@
 
     <span id="app-ver-info" style="margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer" onclick="toggleChangelog()" title="Changelog anzeigen">
       <span style="font-size:0.68rem;color:var(--muted)">App</span>
-      <span style="font-size:0.68rem;font-weight:700;color:#a5b4fc">v1.8.0</span>
+      <span style="font-size:0.68rem;font-weight:700;color:#a5b4fc">v1.8.1</span>
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
     </span>
   </div>
@@ -478,9 +481,18 @@
     <div style="margin-top:16px;display:flex;flex-direction:column;gap:16px">
       <div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span style="background:var(--accent);color:#fff;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:4px">v1.8.0</span>
+          <span style="background:var(--accent);color:#fff;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:4px">v1.8.1</span>
           <span style="font-size:0.72rem;color:var(--muted)">Aktuell · Aug 2026</span>
           <span style="font-size:0.65rem;background:rgba(34,197,94,0.2);color:var(--green);border:1px solid rgba(34,197,94,0.3);padding:1px 6px;border-radius:4px">Neu</span>
+        </div>
+        <ul style="font-size:0.76rem;color:var(--text);line-height:1.7;padding-left:16px">
+          <li>Neuer Button „Bereichsfolge löschen" im Bearbeitungsmodus – leert Örtlich zuständig &amp; Bereichsfolge Ortsteil einer Zone komplett (mit „Zone reset" wiederherstellbar)</li>
+        </ul>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="background:var(--surface2);color:var(--muted);font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:4px;border:1px solid var(--border)">v1.8.0</span>
+          <span style="font-size:0.72rem;color:var(--muted)">Aug 2026</span>
         </div>
         <ul style="font-size:0.76rem;color:var(--text);line-height:1.7;padding-left:16px">
           <li>Neu: „Neuen Standard setzen" – der aktuelle Bearbeitungsstand wird zur Referenz für Zurücksetzen &amp; „geändert"-Markierung (bisheriger Standard wird automatisch als Version gesichert)</li>
@@ -1045,10 +1057,7 @@ function renderGrid() {
         <div class="zone-name">${zoneName}${modBadge}</div>
         <div class="oertlich-row"><span class="label-tag label-oertlich">Örtlich</span>${oChip}${peerHint}</div>
       </div>
-      ${isEdit
-        ? `<button class="btn-sm btn-edit-toggle" style="margin-left:auto" onclick="event.stopPropagation();singleReset('${zoneName}')">↺ Zone reset</button>`
-        : `<svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>`
-      }
+      ${isEdit ? '' : `<svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>`}
     </div>`;
 
     // BODY
@@ -1171,6 +1180,14 @@ function buildViewBody(body, zoneName, ortsteil, zonePeers) {
 // ============================================================
 function buildEditBody(body, zoneName, ortsteil, oertlich) {
   body.innerHTML = '';
+
+  // ── Zonen-Aktionen ──
+  const zoneActions = document.createElement('div');
+  zoneActions.className = 'zone-edit-actions';
+  zoneActions.innerHTML = `
+    <button class="btn-sm btn-edit-toggle" onclick="event.stopPropagation();singleReset('${zoneName}')">↺ Zone reset</button>
+    <button class="btn-sm btn-delete-seq" onclick="event.stopPropagation();deleteZoneSequence('${zoneName}')">🗑️ Bereichsfolge löschen</button>`;
+  body.appendChild(zoneActions);
 
   // ── Örtlich zuständig (editable) ──
   const oertlichData = WORK[zoneName].oertlich;
@@ -1326,11 +1343,20 @@ function buildEditBody(body, zoneName, ortsteil, oertlich) {
 }
 
 function singleReset(zoneName) {
-  if (!confirm(`Zone "${zoneName}" auf Original zurücksetzen?`)) return;
+  if (!confirm(`Zone "${zoneName}" auf Standard zurücksetzen?`)) return;
   WORK[zoneName] = JSON.parse(JSON.stringify(BASELINE[zoneName]));
   saveToStorage();
   renderGrid();
 }
+
+function deleteZoneSequence(zoneName) {
+  if (!confirm(`Komplette Bereichsfolge für Zone "${zoneName}" löschen?\n\nSowohl „Örtlich zuständig" als auch „Bereichsfolge Ortsteil" werden geleert. Mit „Zone reset" lässt sich der Standard jederzeit wiederherstellen.`)) return;
+  WORK[zoneName].oertlich = [];
+  WORK[zoneName].ortsteil = [];
+  saveToStorage();
+  renderGrid();
+}
+window.deleteZoneSequence = deleteZoneSequence;
 
 // ============================================================
 // MODAL (global reset)
