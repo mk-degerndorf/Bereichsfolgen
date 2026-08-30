@@ -69,6 +69,10 @@
   .btn-reset:hover{background:rgba(239,68,68,0.25);}
   .btn-export{background:rgba(59,130,246,0.12);color:var(--rol-muted);border:1px solid rgba(59,130,246,0.4);}
   .btn-export:hover{background:rgba(59,130,246,0.25);}
+  .btn-standard{background:rgba(245,158,11,0.12);color:#fcd34d;border:1px solid rgba(245,158,11,0.4);}
+  .btn-standard:hover{background:rgba(245,158,11,0.25);}
+  .export-scope-select{appearance:none;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--muted);font-size:0.76rem;font-weight:600;padding:6px 10px;cursor:pointer;outline:none;transition:all .15s;}
+  .export-scope-select:focus,.export-scope-select:hover{border-color:var(--accent);color:var(--text);}
 
   main{padding:20px 20px 40px;max-width:1400px;margin:0 auto;}
 
@@ -339,10 +343,22 @@
 <div class="modal-overlay" id="reset-modal">
   <div class="modal">
     <h3>⚠️ Zurücksetzen bestätigen</h3>
-    <p>Alle manuellen Änderungen werden verworfen und die Original-Bereichsfolge wiederhergestellt. Fortfahren?</p>
+    <p>Alle manuellen Änderungen werden verworfen und der aktuelle Standard wiederhergestellt. Fortfahren?</p>
     <div class="modal-btns">
       <button class="btn-modal-cancel" onclick="closeModal()">Abbrechen</button>
       <button class="btn-modal-ok" onclick="confirmReset()">Zurücksetzen</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEUER STANDARD MODAL -->
+<div class="modal-overlay" id="standard-modal">
+  <div class="modal">
+    <h3>📌 Neuen Standard setzen</h3>
+    <p>Der aktuelle Bearbeitungsstand wird als neuer Standard gespeichert. „Zurücksetzen" und die Markierung „geändert" beziehen sich ab sofort auf diesen Stand. Der bisherige Standard wird automatisch als Version gesichert.</p>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="closeStandardModal()">Abbrechen</button>
+      <button class="btn-modal-ok" style="background:#f59e0b" onclick="confirmSetStandard()">Als Standard setzen</button>
     </div>
   </div>
 </div>
@@ -365,7 +381,7 @@
   <div class="header-top">
     <div class="logo">🚒</div>
     <div class="title-block">
-      <h1>Bereichsfolge <span id="header-bereich">Brannenburg RO-L</span> <span class="app-version-badge"><span class="app-ver-dot"></span>v1.7.8</span></h1>
+      <h1>Bereichsfolge <span id="header-bereich">Brannenburg RO-L</span> <span class="app-version-badge"><span class="app-ver-dot"></span>v1.8.0</span></h1>
       <p id="header-subtitle">Alarmierungsfolgen für den Dispositionsbereich · Stand: Jan 2026</p>
     </div>
   </div>
@@ -416,7 +432,7 @@
 
     <span id="app-ver-info" style="margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer" onclick="toggleChangelog()" title="Changelog anzeigen">
       <span style="font-size:0.68rem;color:var(--muted)">App</span>
-      <span style="font-size:0.68rem;font-weight:700;color:#a5b4fc">v1.7.8</span>
+      <span style="font-size:0.68rem;font-weight:700;color:#a5b4fc">v1.8.0</span>
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
     </span>
   </div>
@@ -429,9 +445,19 @@
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 5 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     Importieren
   </button>
-  <button class="btn-icon btn-export" onclick="exportExcel()">
+  <select id="export-scope-edit" class="export-scope-select" title="Export-Bereich wählen">
+    <option value="">Gesamt (alle Zonen)</option>
+    <option value="deg">Nur FF Degerndorf</option>
+    <option value="bra">Nur FF Brannenburg</option>
+    <option value="gro">Nur FF Großbrannenberg</option>
+  </select>
+  <button class="btn-icon btn-export" onclick="exportExcel(document.getElementById('export-scope-edit').value)">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     Excel exportieren
+  </button>
+  <button class="btn-icon btn-standard" onclick="openStandardModal()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2L12 16.4l-6.3 4.6 2.3-7.2-6-4.6h7.6z"/></svg>
+    Neuen Standard setzen
   </button>
   <button class="btn-icon btn-reset" onclick="openModal()">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
@@ -452,9 +478,19 @@
     <div style="margin-top:16px;display:flex;flex-direction:column;gap:16px">
       <div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span style="background:var(--accent);color:#fff;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:4px">v1.7.8</span>
+          <span style="background:var(--accent);color:#fff;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:4px">v1.8.0</span>
           <span style="font-size:0.72rem;color:var(--muted)">Aktuell · Aug 2026</span>
           <span style="font-size:0.65rem;background:rgba(34,197,94,0.2);color:var(--green);border:1px solid rgba(34,197,94,0.3);padding:1px 6px;border-radius:4px">Neu</span>
+        </div>
+        <ul style="font-size:0.76rem;color:var(--text);line-height:1.7;padding-left:16px">
+          <li>Neu: „Neuen Standard setzen" – der aktuelle Bearbeitungsstand wird zur Referenz für Zurücksetzen &amp; „geändert"-Markierung (bisheriger Standard wird automatisch als Version gesichert)</li>
+          <li>Export &amp; Import jetzt auch pro Feuerwehr (Degerndorf/Brannenburg/Großbrannenberg) möglich, zusätzlich zum Gesamt-Export</li>
+        </ul>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="background:var(--surface2);color:var(--muted);font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:4px;border:1px solid var(--border)">v1.7.8</span>
+          <span style="font-size:0.72rem;color:var(--muted)">Aug 2026</span>
         </div>
         <ul style="font-size:0.76rem;color:var(--text);line-height:1.7;padding-left:16px">
           <li>Fehler behoben: Beim Ziehen auf Touch-Geräten öffnete sich das Browser-Kontextmenü statt zu verschieben</li>
@@ -623,8 +659,8 @@
   <div class="import-box" id="import-box">
     <h3>📥 Datei importieren</h3>
     <p>Ziehe eine exportierte CSV-Datei hierher<br>oder wähle sie aus.<br><br>
-    <b>Vollständige Bereichsfolge</b> oder <b>Änderungsdatei</b> werden erkannt.<br>
-    Die importierten Daten ersetzen den aktuellen Arbeitsstand.</p>
+    <b>Vollständige Bereichsfolge</b> (gesamt oder pro Feuerwehr) oder <b>Änderungsdatei</b> werden erkannt.<br>
+    Nur die enthaltenen Zonen werden ersetzt – alle anderen bleiben unverändert.</p>
     <label class="import-file-btn" for="import-file-input">📂 Datei auswählen</label>
     <input type="file" id="import-file-input" accept=".csv">
     <div class="import-warning">⚠️ Tipp: Vorher einen Export machen, um nichts zu verlieren.</div>
@@ -801,7 +837,18 @@ window.openMapModal = openMapModal;
 window.closeMapModal = closeMapModal;
 
 // Deep clone original as the immutable baseline
-const BASELINE = JSON.parse(JSON.stringify(ORIG));
+const BASELINE_KEY = 'bereichsfolge_baseline';
+function loadBaseline() {
+  try {
+    const s = localStorage.getItem(BASELINE_KEY);
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(ORIG));
+}
+function saveBaselineToStorage() {
+  try { localStorage.setItem(BASELINE_KEY, JSON.stringify(BASELINE)); } catch(e) {}
+}
+let BASELINE = loadBaseline();
 
 // Working copy (editable) — load from localStorage if available
 let WORK = loadFromStorage();
@@ -1043,7 +1090,13 @@ function renderGrid() {
   editBtn.style.cssText = 'grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap;';
   if (!editMode) {
     editBtn.innerHTML = `<button class="btn-sm btn-edit-toggle" style="padding:9px 18px;font-size:0.8rem" onclick="toggleEditMode()">✏️ Bereichsfolgen bearbeiten</button>
-    <button class="btn-sm btn-export" style="padding:9px 18px;font-size:0.8rem;background:rgba(59,130,246,0.12);color:var(--rol-muted);border:1px solid rgba(59,130,246,0.4);border-radius:6px;cursor:pointer" onclick="exportExcel()">⬇ Excel exportieren</button><button class="btn-sm" style="padding:9px 18px;font-size:0.8rem;background:rgba(34,211,238,0.12);color:var(--match);border:1px solid var(--match-border);border-radius:6px;cursor:pointer" onclick="openImport()">⬆ Importieren</button>`;
+    <select id="export-scope-grid" class="export-scope-select" title="Export-Bereich wählen">
+      <option value="">Gesamt (alle Zonen)</option>
+      <option value="deg">Nur FF Degerndorf</option>
+      <option value="bra">Nur FF Brannenburg</option>
+      <option value="gro">Nur FF Großbrannenberg</option>
+    </select>
+    <button class="btn-sm btn-export" style="padding:9px 18px;font-size:0.8rem;background:rgba(59,130,246,0.12);color:var(--rol-muted);border:1px solid rgba(59,130,246,0.4);border-radius:6px;cursor:pointer" onclick="exportExcel(document.getElementById('export-scope-grid').value)">⬇ Excel exportieren</button><button class="btn-sm" style="padding:9px 18px;font-size:0.8rem;background:rgba(34,211,238,0.12);color:var(--match);border:1px solid var(--match-border);border-radius:6px;cursor:pointer" onclick="openImport()">⬆ Importieren</button>`;
   }
   grid.appendChild(editBtn);
 }
@@ -1295,14 +1348,54 @@ window.closeModal = closeModal;
 window.confirmReset = confirmReset;
 
 // ============================================================
+// NEUER STANDARD (Baseline aktualisieren)
+// ============================================================
+function openStandardModal() { document.getElementById('standard-modal').classList.add('visible'); }
+function closeStandardModal() { document.getElementById('standard-modal').classList.remove('visible'); }
+function confirmSetStandard() {
+  const versions = loadVersions();
+  versions.unshift({
+    id: Date.now(),
+    name: `Alter Standard (vor Aktualisierung, ${new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})})`,
+    ts: new Date().toISOString(),
+    data: JSON.parse(JSON.stringify(BASELINE))
+  });
+  saveVersions(versions.slice(0, MAX_VERSIONS));
+  BASELINE = JSON.parse(JSON.stringify(WORK));
+  saveBaselineToStorage();
+  closeStandardModal();
+  renderVersionBar();
+  renderGrid();
+}
+window.openStandardModal = openStandardModal;
+window.closeStandardModal = closeStandardModal;
+window.confirmSetStandard = confirmSetStandard;
+
+// ============================================================
 // EXCEL EXPORT
 // ============================================================
-function exportExcel() {
+const FF_SCOPE_LABELS = { deg: 'Degerndorf', bra: 'Brannenburg', gro: 'Großbrannenberg' };
+
+function exportExcel(scope) {
   const date = new Date().toISOString().slice(0,10);
+  const scoped = !!scope;
+  const scopeLabel = scoped ? FF_SCOPE_LABELS[scope] : null;
+  const fnameSuffix = scoped ? `_FF-${scopeLabel}` : '';
+
+  const zoneEntries = Object.entries(WORK).filter(([zoneName, d]) => {
+    if (!scoped) return true;
+    const o = d.oertlich?.[0];
+    return o && oertlichKey(o.name) === scope;
+  });
+
+  if (scoped && zoneEntries.length === 0) {
+    alert(`Keine Zonen mit örtlich zuständiger FF ${scopeLabel} gefunden.`);
+    return;
+  }
 
   // ── Sheet 1: Vollständige Bereichsfolge ──
   const rows = [['Autobahn/Bereich','Zone','Typ','LFD_NR','Feuerwehr']];
-  Object.entries(WORK).forEach(([zoneName, d]) => {
+  zoneEntries.forEach(([zoneName, d]) => {
     (d.oertlich||[]).forEach(ff => {
       rows.push(['BEREICH', zoneName + ' - BRANNENBURG', 'BFOLGE FF ÖRTLICH', ff.nr, ff.name]);
     });
@@ -1310,23 +1403,25 @@ function exportExcel() {
       rows.push(['BEREICH', zoneName + ' - BRANNENBURG', 'BFOLGE FF ORTSTEIL', ff.nr, ff.name]);
     });
   });
-  ADATA.forEach(ab => {
-    ab.feuerwehren.forEach(ff => {
-      rows.push([ab.autobahn, `${ab.richtung_von} → ${ab.richtung_bis} | ${ab.abschnitt}`, 'AUTOBAHN', ff.nr, ff.name]);
+  if (!scoped) {
+    ADATA.forEach(ab => {
+      ab.feuerwehren.forEach(ff => {
+        rows.push([ab.autobahn, `${ab.richtung_von} → ${ab.richtung_bis} | ${ab.abschnitt}`, 'AUTOBAHN', ff.nr, ff.name]);
+      });
     });
-  });
+  }
 
   const csv1 = '\uFEFF' + rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(';')).join('\r\n');
   const blob1 = new Blob([csv1], {type:'text/csv;charset=utf-8;'});
   const a1 = document.createElement('a');
   a1.href = URL.createObjectURL(blob1);
-  a1.download = `Bereichsfolge_Brannenburg_${date}.csv`;
+  a1.download = `Bereichsfolge_Brannenburg${fnameSuffix}_${date}.csv`;
   a1.click();
 
   // ── Sheet 2: Änderungen gegenüber Standard ──
   setTimeout(() => {
     const diffRows = [['Zone','Bereich','Typ','Position','Standard (Original)','Geändert zu','Änderungsart']];
-    Object.keys(WORK).sort().forEach(zoneName => {
+    zoneEntries.map(([z])=>z).sort().forEach(zoneName => {
       const bOert = BASELINE[zoneName]?.oertlich || [];
       const wOert = WORK[zoneName]?.oertlich || [];
       const bOrt  = BASELINE[zoneName]?.ortsteil || [];
@@ -1360,15 +1455,15 @@ function exportExcel() {
       const blob2 = new Blob([csv2], {type:'text/csv;charset=utf-8;'});
       const a2 = document.createElement('a');
       a2.href = URL.createObjectURL(blob2);
-      a2.download = `Bereichsfolge_Brannenburg_Aenderungen_${date}.csv`;
+      a2.download = `Bereichsfolge_Brannenburg${fnameSuffix}_Aenderungen_${date}.csv`;
       a2.click();
     }
 
     // ── Datei 3: Vollständiger aktueller Stand (Import-fähig) ──
     setTimeout(() => {
-      const fullRows = [['__IMPORT_FORMAT__','v2','Bereichsfolge Brannenburg RO-L',date]];
+      const fullRows = [['__IMPORT_FORMAT__','v2', scoped ? `Bereichsfolge Brannenburg RO-L – FF ${scopeLabel}` : 'Bereichsfolge Brannenburg RO-L', date]];
       fullRows.push(['Zone','Bereich','Typ','LFD_NR','Feuerwehr']);
-      Object.entries(WORK).forEach(([zoneName, d]) => {
+      zoneEntries.forEach(([zoneName, d]) => {
         (d.oertlich||[]).forEach(ff => {
           fullRows.push([zoneName, zoneName + ' - BRANNENBURG', 'BFOLGE FF ÖRTLICH', ff.nr, ff.name]);
         });
@@ -1380,7 +1475,7 @@ function exportExcel() {
       const blob3 = new Blob([csv3], {type:'text/csv;charset=utf-8;'});
       const a3 = document.createElement('a');
       a3.href = URL.createObjectURL(blob3);
-      a3.download = `Bereichsfolge_Brannenburg_Komplett_${date}.csv`;
+      a3.download = `Bereichsfolge_Brannenburg${fnameSuffix}_Komplett_${date}.csv`;
       a3.click();
     }, 900);
   }, 500);
@@ -2246,12 +2341,12 @@ function renderVersionBar() {
   // Always show baseline chip
   const baseChip = document.createElement('span');
   baseChip.className = 'ver-chip baseline';
-  baseChip.title = 'Original-Datenstand (unveränderlich)';
-  baseChip.innerHTML = `<span class="ver-dot"></span>Original`;
+  baseChip.title = 'Aktueller Standard';
+  baseChip.innerHTML = `<span class="ver-dot"></span>Standard`;
   baseChip.onclick = () => {
-    if (!confirm('Auf Original-Datenstand zurücksetzen? (Aktueller Stand wird als Auto-Backup gespeichert)')) return;
+    if (!confirm('Auf aktuellen Standard zurücksetzen? (Jetziger Stand wird als Auto-Backup gespeichert)')) return;
     const versions = loadVersions();
-    versions.unshift({ id: Date.now(), name: `Auto-Backup vor Original-Reset (${new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})})`, ts: new Date().toISOString(), data: JSON.parse(JSON.stringify(WORK)) });
+    versions.unshift({ id: Date.now(), name: `Auto-Backup vor Standard-Reset (${new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})})`, ts: new Date().toISOString(), data: JSON.parse(JSON.stringify(WORK)) });
     saveVersions(versions.slice(0, MAX_VERSIONS));
     WORK = JSON.parse(JSON.stringify(BASELINE));
     saveToStorage(); 
