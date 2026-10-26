@@ -384,7 +384,7 @@
   <div class="header-top">
     <div class="logo">🚒</div>
     <div class="title-block">
-      <h1>Bereichsfolge <span id="header-bereich">Brannenburg RO-L</span> <span class="app-version-badge"><span class="app-ver-dot"></span>v1.8.2</span></h1>
+      <h1>Bereichsfolge <span id="header-bereich">Brannenburg RO-L</span> <span class="app-version-badge"><span class="app-ver-dot"></span>v1.8.3</span></h1>
       <p id="header-subtitle">Alarmierungsfolgen für den Dispositionsbereich · Stand: Jan 2026</p>
     </div>
   </div>
@@ -435,7 +435,7 @@
 
     <span id="app-ver-info" style="margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer" onclick="toggleChangelog()" title="Changelog anzeigen">
       <span style="font-size:0.68rem;color:var(--muted)">App</span>
-      <span style="font-size:0.68rem;font-weight:700;color:#a5b4fc">v1.8.2</span>
+      <span style="font-size:0.68rem;font-weight:700;color:#a5b4fc">v1.8.3</span>
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
     </span>
   </div>
@@ -481,9 +481,18 @@
     <div style="margin-top:16px;display:flex;flex-direction:column;gap:16px">
       <div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span style="background:var(--accent);color:#fff;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:4px">v1.8.2</span>
+          <span style="background:var(--accent);color:#fff;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:4px">v1.8.3</span>
           <span style="font-size:0.72rem;color:var(--muted)">Aktuell · Okt 2026</span>
           <span style="font-size:0.65rem;background:rgba(34,197,94,0.2);color:var(--green);border:1px solid rgba(34,197,94,0.3);padding:1px 6px;border-radius:4px">Neu</span>
+        </div>
+        <ul style="font-size:0.76rem;color:var(--text);line-height:1.7;padding-left:16px">
+          <li>Zonenname im Bearbeitungsmodus änderbar („Zone umbenennen"); der Kartenausschnitt bleibt erhalten</li>
+        </ul>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="background:var(--surface2);color:var(--muted);font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:4px;border:1px solid var(--border)">v1.8.2</span>
+          <span style="font-size:0.72rem;color:var(--muted)">Okt 2026</span>
         </div>
         <ul style="font-size:0.76rem;color:var(--text);line-height:1.7;padding-left:16px">
           <li>Fix: „+ Hinzufügen" einer Feuerwehr in der Bereichsfolge Ortsteil im Bearbeitungsmodus funktioniert wieder (auch mit Enter-Taste)</li>
@@ -812,8 +821,15 @@ function positionMapImg(container, img, coord) {
   marker.style.top = ((coord.y/100)*bh - by) + 'px';
 }
 
+// Umbenannte Zonen: neuer Name -> ursprünglicher Name (für Kartenausschnitt)
+const ALIAS_KEY = 'bereichsfolge_zonealias';
+function loadZoneAlias() { try { return JSON.parse(localStorage.getItem(ALIAS_KEY)) || {}; } catch(e) { return {}; } }
+function saveZoneAlias() { try { localStorage.setItem(ALIAS_KEY, JSON.stringify(ZONE_ALIAS)); } catch(e) {} }
+let ZONE_ALIAS = loadZoneAlias();
+function zoneCoord(zoneName) { return ZONE_COORDS[zoneName] || ZONE_COORDS[ZONE_ALIAS[zoneName]]; }
+
 function renderMapExcerpt(container, zoneName) {
-  const coord = ZONE_COORDS[zoneName];
+  const coord = zoneCoord(zoneName);
   if (!coord) {
     showMapError(container, 'Kein Kartenausschnitt für diese Zone verfügbar');
     return;
@@ -840,7 +856,7 @@ function renderMapExcerpt(container, zoneName) {
 }
 
 function openMapModal(zoneName) {
-  const coord = ZONE_COORDS[zoneName];
+  const coord = zoneCoord(zoneName);
   document.getElementById('map-modal-title').textContent = `🗺️ Kartenausschnitt – ${zoneName}`;
   const marker = document.getElementById('map-modal-marker');
   if (coord) {
@@ -1193,9 +1209,29 @@ function buildEditBody(body, zoneName, ortsteil, oertlich) {
   // ── Zonen-Aktionen ──
   const zoneActions = document.createElement('div');
   zoneActions.className = 'zone-edit-actions';
-  zoneActions.innerHTML = `
+  const nameRow = document.createElement('div');
+  nameRow.className = 'add-ff-row';
+  nameRow.style.cssText = 'flex:1 1 100%;margin:0 0 4px 0;';
+  const nameInput = document.createElement('input');
+  nameInput.className = 'add-ff-input';
+  nameInput.value = zoneName;
+  nameInput.setAttribute('aria-label', 'Zonenname');
+  const nameBtn = document.createElement('button');
+  nameBtn.className = 'btn-sm btn-edit-toggle';
+  nameBtn.style.whiteSpace = 'nowrap';
+  nameBtn.textContent = '✎ Zone umbenennen';
+  const doRename = () => renameZone(zoneName, nameInput.value);
+  nameBtn.addEventListener('click', e => { e.stopPropagation(); doRename(); });
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doRename(); } });
+  nameInput.addEventListener('click', e => e.stopPropagation());
+  nameRow.appendChild(nameInput); nameRow.appendChild(nameBtn);
+  zoneActions.appendChild(nameRow);
+  const actBtns = document.createElement('div');
+  actBtns.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+  actBtns.innerHTML = `
     <button class="btn-sm btn-edit-toggle" onclick="event.stopPropagation();singleReset('${zoneName}')">↺ Zone reset</button>
     <button class="btn-sm btn-delete-seq" onclick="event.stopPropagation();deleteZoneSequence('${zoneName}')">🗑️ Bereichsfolge löschen</button>`;
+  zoneActions.appendChild(actBtns);
   body.appendChild(zoneActions);
 
   // ── Örtlich zuständig (editable) ──
@@ -1356,6 +1392,32 @@ function buildEditBody(body, zoneName, ortsteil, oertlich) {
   addBtn.addEventListener('click', e => { e.stopPropagation(); doAddOrt(); });
   addInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doAddOrt(); } });
 }
+
+function renameZone(oldName, rawNew) {
+  const newName = (rawNew || '').replace(/\s+/g, ' ').trim();
+  if (!newName || newName === oldName) { renderGrid(); return; }
+  if (/['"`<>&\\]/.test(newName)) { alert('Der Zonenname darf folgende Zeichen nicht enthalten: \' " ` < > & \\'); return; }
+  if (Object.prototype.hasOwnProperty.call(WORK, newName)) { alert(`Eine Zone mit dem Namen "${newName}" existiert bereits.`); return; }
+  if (!confirm(`Zone "${oldName}" in "${newName}" umbenennen?`)) return;
+  const renameKey = obj => {
+    const out = {};
+    Object.keys(obj).forEach(k => { out[k === oldName ? newName : k] = obj[k]; });
+    return out;
+  };
+  WORK = renameKey(WORK);
+  if (Object.prototype.hasOwnProperty.call(BASELINE, oldName)) {
+    BASELINE = renameKey(BASELINE);
+    saveBaselineToStorage();
+  }
+  ZONE_ALIAS[newName] = ZONE_ALIAS[oldName] || oldName;
+  delete ZONE_ALIAS[oldName];
+  saveZoneAlias();
+  if (expanded.has(oldName)) { expanded.delete(oldName); expanded.add(newName); }
+  if (bfolgeOpen.has(oldName)) { bfolgeOpen.delete(oldName); bfolgeOpen.add(newName); }
+  saveToStorage();
+  renderGrid();
+}
+window.renameZone = renameZone;
 
 function singleReset(zoneName) {
   if (!confirm(`Zone "${zoneName}" auf Standard zurücksetzen?`)) return;
